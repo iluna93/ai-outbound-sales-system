@@ -1,0 +1,398 @@
+{
+  "name": "[Agencia] - WhatsApp IceBreaker Generador South American customers",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-trigger",
+      "name": "Trigger Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "13Z7h7UQlwaEN32Wx6nw8MWq6N-Y-86k7cpO1dsFZXMo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1"
+        },
+        "options": {}
+      },
+      "id": "node-sheets-read",
+      "name": "Leer Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YtuLqnWHXjk2caLV",
+          "name": "Google Sheets account 8"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "filter-wa",
+              "leftValue": "={{ $json[\"mensaje whatsapp\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-filter",
+      "name": "Filtrar Sin Mensaje WA",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  let url = item.json.Web || '';\n  if (!url || typeof url !== 'string' || url.trim() === '') {\n    return { json: { error: 'URL no valida', cleanUrl: '', originalUrl: url, telefono: item.json.telefono || '', web: item.json.Web || '' } };\n  }\n  url = url.trim();\n  if (!url.match(/^https?:\\/\\//i)) { url = 'https://' + url; }\n  url = url.replace(/^http:\\/\\//i, 'https://');\n  url = url.replace(/^(https:\\/\\/)www\\./i, '$1');\n  if (!url.endsWith('/')) { url += '/'; }\n  return { json: { cleanUrl: url, originalUrl: item.json.Web, telefono: item.json.telefono || '', web: item.json.Web || '' } };\n});"
+      },
+      "id": "node-clean-url",
+      "name": "Limpiar URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.cleanUrl }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "node-scrape",
+      "name": "Scrape Web",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1104,
+        192
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "web",
+              "value": "={{ $('Limpiar URL').item.json.web }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "telefono",
+              "value": "={{ $('Limpiar URL').item.json.telefono }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "htmlContent",
+              "value": "={{ $json.data ?? $json.body ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-map",
+      "name": "Mapear Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1328,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  let html = item.json.htmlContent || '';\n  if (!html || html.trim() === '') {\n    return { json: { cleanText: '', web: item.json.web || '', telefono: item.json.telefono || '', error: 'Sin HTML' } };\n  }\n  const cleanText = html\n    .replace(/<script[\\s\\S]*?>[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<style[\\s\\S]*?>[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<\\/?[^>]+(>|$)/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 4000);\n  return { json: { cleanText, web: item.json.web || '', telefono: item.json.telefono || '' } };\n});"
+      },
+      "id": "node-clean-html",
+      "name": "Limpiar HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=### DATOS DEL PROSPECTO\n**Informacion del negocio (extraida de su web):**\n{{ $json.cleanText }}\n**Web:** {{ $json.web }}\n**Telefono local (tal como esta guardado, sin codigo de pais):** {{ $json.telefono }}"
+            },
+            {
+              "content": "Eres Ivan Luna, fundador de Lunar Projects. Escribes mensajes de WhatsApp en frio a duenos de negocios en Latinoamerica. Tu estilo es casual, directo y autentico - como si le escribieras a alguien que conoces de vista, no a un extrano corporativo.\n\n## CONTEXTO\nIvan automatiza procesos con IA: chatbots, flujos de trabajo, seguimientos automaticos, reportes, atencion al cliente. Ahorra tiempo a negocios.\n\n## TUS DOS TAREAS\n1. Escribir UN mensaje de WhatsApp corto y autentico.\n2. Deducir el PAIS del negocio y convertir su telefono al formato internacional de WhatsApp.\n\n## TAREA 1 - EL MENSAJE\nBasandote en lo que ves en la web del prospecto, el mensaje debe:\n\n1. Empezar SIEMPRE con \"Hola!\" como saludo\n2. Mencionar UN detalle hiper-especifico que solo alguien que leyo su web sabria. Jerarquia de lo que debes buscar:\n   - PRIMERO: un servicio poco obvio o especialidad particular del negocio\n   - SEGUNDO: un tipo de cliente especifico que atienden\n   - TERCERO: ciudad o zona solo si es directamente relevante para su operacion (no menciones ciudad solo porque aparece en el footer o la direccion)\n   - PROHIBIDO: mencionar el rubro generico (\"vi que se dedican a alquileres\", \"vi que son inmobiliaria\", \"vi que ofrecen servicios de X\")\n   - Si no encuentras ningun detalle especifico mas alla del rubro, usa el nombre del negocio como ancla y enfocate en el dolor mas comun de ese sector y una pregunta directa\n3. Tocar un dolor directamente conectado al detalle especifico del punto 2. El dolor NO puede ser generico. Si mencionaste una especialidad, el dolor es algo propio de esa especialidad. Si mencionaste un tipo de cliente, el dolor es algo de atender a ese tipo de cliente. NUNCA uses frases como \"debe absorberles horas\" o \"coordinar consultas debe ser un caos\" sin conectarlas al detalle especifico.\n4. Insinuar que puedes ayudar, sin vender duro\n5. Terminar con una pregunta corta, concreta y facil de responder que invite a confirmar o negar el problema.\n   - BUENAS: \"¿Eso te genera caos hoy?\", \"¿Como lo manejas actualmente?\", \"¿Te pasa eso?\"\n   - MALAS: \"¿Te gustaria saber mas?\", \"¿Estarias interesado?\", \"Contame si van con ese tipo de problemas\"\n\n## ESTILO - MUY IMPORTANTE\n- Maximo 70 palabras\n- Suena como un mensaje escrito a mano en 2 minutos\n- Usa \"la verdad\", \"mira\", \"imaginate\" - expresiones naturales\n- Tutea siempre\n- NADA de \"Vi que en X se dedican a Y\" ni \"He ayudado a negocios similares\" (suena a plantilla)\n- Sin emojis o maximo 1\n- Firma simple al final: - Ivan\n- PROHIBIDO: empezar con \"Oye\", sonar a email de marketing, frases genericas, inventar datos que no esten en la web\n\n## TAREA 2 - PAIS Y TELEFONO\n1. Deduce el PAIS del negocio mirando la web: direccion, ciudad, dominio (.com.ar, .com.ec, .cl...), idioma, moneda, prefijos telefonicos.\n2. Toma el \"Telefono local\" de los datos y conviertelo a formato internacional de WhatsApp:\n   - SOLO digitos: sin +, sin espacios, sin guiones, sin parentesis\n   - Antepon el codigo de pais correcto\n   - Quita el 0 inicial de larga distancia nacional si lo tiene\n   - ARGENTINA celulares: usa 54 9 + codigo de area + numero (quita el 15 si aparece)\n   - MEXICO: 52 + 10 digitos\n3. Si NO puedes determinar el pais con seguridad, devuelve telefono_whatsapp vacio \"\" y pais \"desconocido\".\n\n### CODIGOS DE PAIS (referencia)\nEcuador 593 | Colombia 57 | Argentina 54 | Peru 51 | Chile 56 | Uruguay 598 | Mexico 52 | Bolivia 591 | Paraguay 595 | Venezuela 58 | Brasil 55 | Costa Rica 506 | Panama 507 | Guatemala 502 | El Salvador 503 | Honduras 504 | Nicaragua 505 | Rep Dominicana 1\n\n### EJEMPLOS DE CONVERSION\nEcuador \"098 488 4472\" -> 593984884472\nColombia \"310 8606060\" -> 573108606060\nArgentina \"(011) 5256-9500\" (celular) -> 5491152569500\nPeru \"989 328 772\" -> 51989328772\nChile \"(2) 3267 1946\" -> 56232671946\n\n## FORMATO DE SALIDA (JSON puro, sin markdown ni triple backtick)\n{\"mensaje\": \"texto del mensaje aqui\", \"pais\": \"nombre del pais\", \"telefono_whatsapp\": \"numero internacional solo digitos\"}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "id": "node-openai",
+      "name": "Generar Mensaje WA",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1760,
+        192
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "3zdChGtZSuLugD0r",
+          "name": "OpenAi account 3"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map((item, i) => {\n  const c = item.json.message?.content || {};\n  const msg = c.mensaje || item.json.mensaje || '';\n  const src = $('Limpiar HTML').all()[i].json;\n  let pais = c.pais || '';\n  let phone = String(c.telefono_whatsapp || '').replace(/\\D/g, '');\n  // Fallback: si la IA no determino pais/telefono, asumir Ecuador (593)\n  if (phone.length < 10 || phone.length > 15) {\n    let local = String(src.telefono || '').replace(/\\D/g, '');\n    if (local.startsWith('0')) local = local.slice(1);\n    phone = local ? '593' + local : '';\n    if (phone) pais = 'Ecuador (asumido)';\n  }\n  const linkWA = phone ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg) : 'REVISAR - sin telefono';\n  return { json: {\n    mensajeWA: msg,\n    linkWA,\n    pais: pais,\n    telefonoIntl: phone,\n    web: src.web || '',\n    telefono: src.telefono || ''\n  } };\n});"
+      },
+      "id": "node-build-link",
+      "name": "Crear Link WA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "13Z7h7UQlwaEN32Wx6nw8MWq6N-Y-86k7cpO1dsFZXMo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Web": "={{ $json.web }}",
+            "mensaje whatsapp": "={{ $json.mensajeWA }}",
+            "Link Wa": "={{ $json.linkWA }}"
+          },
+          "schema": [],
+          "matchingColumns": [
+            "Web"
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-sheets-write",
+      "name": "Guardar en Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2208,
+        192
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YtuLqnWHXjk2caLV",
+          "name": "Google Sheets account 8"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().slice(0, 100);"
+      },
+      "id": "node-limitar-leads",
+      "name": "Limitar Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger Manual": {
+      "main": [
+        [
+          {
+            "node": "Leer Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Leads": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Sin Mensaje WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Sin Mensaje WA": {
+      "main": [
+        [
+          {
+            "node": "Limitar Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar URL": {
+      "main": [
+        [
+          {
+            "node": "Scrape Web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Web": {
+      "main": [
+        [
+          {
+            "node": "Mapear Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapear Datos": {
+      "main": [
+        [
+          {
+            "node": "Limpiar HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar HTML": {
+      "main": [
+        [
+          {
+            "node": "Generar Mensaje WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Mensaje WA": {
+      "main": [
+        [
+          {
+            "node": "Crear Link WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Link WA": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limitar Leads": {
+      "main": [
+        [
+          {
+            "node": "Limpiar URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "5930bbf3-4043-4ccd-b6b6-3062b5c6acd5",
+  "meta": {
+    "instanceId": "97f842eda80e56166f7d266021f67dc897625c5853208107bdb97efefff23ec2"
+  },
+  "id": "9LOjPJFyznbhUeD0",
+  "tags": []
+}
