@@ -150,7 +150,7 @@
       ],
       "id": "924ff734-fe8e-4fef-86cd-73a4a3fe2415",
       "name": "Wait",
-      "webhookId": "063e5eaa-aa5f-4636-912c-ce0b7378b1bb"
+      "webhookId": "<WEBHOOK_ID>"
     },
     {
       "parameters": {
@@ -222,8 +222,8 @@
       "name": "OpenAI",
       "credentials": {
         "openAiApi": {
-          "id": "3zdChGtZSuLugD0r",
-          "name": "OpenAi account 3"
+          "id": "<OPENAI_CREDENTIAL_ID>",
+          "name": "OpenAI Portfolio Credential"
         }
       },
       "onError": "continueRegularOutput"
@@ -233,17 +233,17 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "13Z7h7UQlwaEN32Wx6nw8MWq6N-Y-86k7cpO1dsFZXMo",
+          "value": "<GOOGLE_SHEET_ID>",
           "mode": "list",
-          "cachedResultName": "LEAD SCRAPPING LUNAR PROJECTS",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13Z7h7UQlwaEN32Wx6nw8MWq6N-Y-86k7cpO1dsFZXMo/edit?usp=drivesdk"
+          "cachedResultName": "LEAD DATABASE",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "Hoja 1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13Z7h7UQlwaEN32Wx6nw8MWq6N-Y-86k7cpO1dsFZXMo/edit#gid=0"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<GOOGLE_SHEET_ID>/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -320,8 +320,8 @@
       "alwaysOutputData": true,
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "YtuLqnWHXjk2caLV",
-          "name": "Google Sheets account 8"
+          "id": "<GOOGLE_SHEETS_CREDENTIAL_ID>",
+          "name": "Google Sheets Portfolio Credential"
         }
       },
       "onError": "continueRegularOutput"
@@ -425,7 +425,7 @@
           "parameters": [
             {
               "name": "X-Goog-Api-Key",
-              "value": "AIzaSyA6n4uh-ESbA9CrPZUyRwYk_d2djuQ1N08"
+              "value": "<GOOGLE_MAPS_API_KEY>"
             },
             {
               "name": "X-Goog-FieldMask",
@@ -544,7 +544,7 @@
       ],
       "id": "94e2269f-ad3e-4b44-8fe2-02abfda6dfc4",
       "name": "Wait1",
-      "webhookId": "bb348ef4-dc0a-4377-9661-a64ca995804c"
+      "webhookId": "<WEBHOOK_ID>"
     },
     {
       "parameters": {
@@ -778,10 +778,10 @@
     "availableInMCP": false,
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "b60d9f72-a43b-4d89-9e77-af3ba806c471",
+  "versionId": "<VERSION_ID>",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "97f842eda80e56166f7d266021f67dc897625c5853208107bdb97efefff23ec2"
+    "instanceId": "<INSTANCE_ID>"
   },
   "id": "zmz_tcGIcHUa7wARlekUT",
   "tags": []
